@@ -149,7 +149,7 @@ app.get("/try-sess", (req, res) => {
 });
 
 app.get("/test", async (req, res) => {
-  const sql = "SELECT * FROM m_member WHERE m_member_id = 1 "; //從第4筆開始取6筆資料
+  const sql = "SELECT * FROM m_member WHERE m_member_id BETWEEN 1 and 20 "; //從第4筆開始取6筆資料
   const [rows, field] = await db.query(sql);
   // fields: 會拿到欄位相關的資訊, 通常不會用到
   res.json({ rows, field });
@@ -200,17 +200,20 @@ app.post("/login", upload.none(), async (req, res) => {
     success: false,
     code: 0,
     error: "",
-    bodyData: req.body,
+    bodyData: req.body, // 傳給用戶端, 存到 localStorage
   };
   let { email, password } = req.body;
   email = email ? email.trim() : "";
   password = password ? password.trim() : "";
+
+  console.log(email, password);
+  
   // 0. 兩者若有一個沒有值就結束
   if (!email || !password) {
     return res.json(output);
   }
   // 1. 先確定帳號是不是對的
-  const sql = `SELECT * FROM members WHERE email=?`;
+  const sql = `SELECT * FROM m_member WHERE m_account=?`;
   const [rows] = await db.query(sql, [email]);
   if (!rows.length) {
     // 帳號是錯的
@@ -220,21 +223,34 @@ app.post("/login", upload.none(), async (req, res) => {
   }
   const row = rows[0];
   // 2. 確定密碼是不是對的
-
-  const result = await bcrypt.compare(password, row.password_hash);
+  const result = await password === row.m_password
+  console.log('password',result);
+  
+  // const result = await bcrypt.compare(password, row.password_hash);
   if (!result) {
     // 密碼是錯的
     output.code = 450;
     output.error = "帳號或密碼錯誤";
     return res.json(output);
   }
+
+  // 前端的output資料
+  output.bodyData = {
+    id: row.m_member_id,
+    account: row.m_account,
+    nickname: row.m_nickname,
+  }
+
   // 帳密是對的, 要儲存登入的狀態到 session
   req.session.admin = {
-    id: row.member_id,
-    email,
-    nickname: row.nickname,
+    id: row.m_member_id,
+    account: row.m_account,
+    nickname: row.m_nickname,
+
   };
   output.success = true;
+  console.log('output',output);
+  
   res.json(output);
 });
 //登出
@@ -323,6 +339,7 @@ app.post("/login-jwt", upload.none(), async (req, res) => {
 app.get("/jwt-data", (req, res) => {
   res.json(req.my_jwt);
 });
+
 
 // ********** 靜態內容資料夾 **************************
 app.use(express.static("public"));
