@@ -19,6 +19,7 @@ import cors from "cors";
 //引入token
 import jwt from "jsonwebtoken";
 
+
 //建立 web server 物件
 const app = express();
 
@@ -31,6 +32,7 @@ const corsOptions = {
   origin: (origin, callback) => {
     callback(null, true);
   },
+
 };
 app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
