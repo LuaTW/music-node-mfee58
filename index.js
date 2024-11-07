@@ -195,20 +195,78 @@ app.get("/login", (req, res) => {
   res.render("login");
 });
 
+// 登入 暫時註解 11.07 (資料存在localStorage)
+// app.post("/login", upload.none(), async (req, res) => {
+//   const output = {
+//     success: false,
+//     code: 0,
+//     error: "",
+//     bodyData: req.body, // 傳給用戶端, 存到 localStorage
+//   };
+//   let { email, password } = req.body;
+//   email = email ? email.trim() : "";
+//   password = password ? password.trim() : "";
+
+//   console.log(email, password);
+  
+//   // 0. 兩者若有一個沒有值就結束
+//   if (!email || !password) {
+//     return res.json(output);
+//   }
+//   // 1. 先確定帳號是不是對的
+//   const sql = `SELECT * FROM m_member WHERE m_account=?`;
+//   const [rows] = await db.query(sql, [email]);
+//   if (!rows.length) {
+//     // 帳號是錯的
+//     output.code = 400; //錯誤代碼自行設定
+//     output.error = "帳號或密碼錯誤";
+//     return res.json(output);
+//   }
+//   const row = rows[0];
+//   // 2. 確定密碼是不是對的
+//   const result = await password === row.m_password
+//   console.log('password',result);
+  
+//   // const result = await bcrypt.compare(password, row.password_hash);
+//   if (!result) {
+//     // 密碼是錯的
+//     output.code = 450;
+//     output.error = "帳號或密碼錯誤";
+//     return res.json(output);
+//   }
+
+//   // 前端的output資料
+//   output.bodyData = {
+//     id: row.m_member_id,
+//     account: row.m_account,
+//     nickname: row.m_nickname,
+//   }
+
+//   // 帳密是對的, 要儲存登入的狀態到 session
+//   req.session.admin = {
+//     id: row.m_member_id,
+//     account: row.m_account,
+//     nickname: row.m_nickname,
+
+//   };
+//   output.success = true;
+//   console.log('output',output);
+  
+//   res.json(output);
+// });
+
+
+// 登入 暫時新增 11.07 (資料從localStorage改存到session)
 app.post("/login", upload.none(), async (req, res) => {
   const output = {
     success: false,
     code: 0,
     error: "",
-    bodyData: req.body, // 傳給用戶端, 存到 localStorage
   };
   let { email, password } = req.body;
   email = email ? email.trim() : "";
   password = password ? password.trim() : "";
 
-  console.log(email, password);
-  
-  // 0. 兩者若有一個沒有值就結束
   if (!email || !password) {
     return res.json(output);
   }
@@ -216,42 +274,45 @@ app.post("/login", upload.none(), async (req, res) => {
   const sql = `SELECT * FROM m_member WHERE m_account=?`;
   const [rows] = await db.query(sql, [email]);
   if (!rows.length) {
-    // 帳號是錯的
-    output.code = 400; //錯誤代碼自行設定
+    output.code = 400;
     output.error = "帳號或密碼錯誤";
     return res.json(output);
   }
   const row = rows[0];
-  // 2. 確定密碼是不是對的
-  const result = await password === row.m_password
-  console.log('password',result);
-  
-  // const result = await bcrypt.compare(password, row.password_hash);
-  if (!result) {
-    // 密碼是錯的
+  const isPasswordCorrect = password === row.m_password;
+
+  if (!isPasswordCorrect) {
     output.code = 450;
     output.error = "帳號或密碼錯誤";
     return res.json(output);
   }
 
-  // 前端的output資料
-  output.bodyData = {
-    id: row.m_member_id,
-    account: row.m_account,
-    nickname: row.m_nickname,
-  }
-
-  // 帳密是對的, 要儲存登入的狀態到 session
+  // 將登入成功的會員資料儲存到 session
   req.session.admin = {
     id: row.m_member_id,
     account: row.m_account,
     nickname: row.m_nickname,
-
+    email: row.m_email,
+    birth: row.m_birth,
+    gender: row.m_gender,
+    location: row.m_location,
   };
   output.success = true;
-  console.log('output',output);
-  
   res.json(output);
+});
+
+app.get("/api/check-login", (req, res) => {
+  if (req.session.admin) {
+    res.json({
+      loggedIn: true,
+      memberInfo: req.session.admin,
+    });
+  } else {
+    res.json({
+      loggedIn: false,
+      message: "尚未登入",
+    });
+  }
 });
 //登出
 app.get("/logout", (req, res) => {
