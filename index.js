@@ -9,6 +9,7 @@ import moment from "moment-timezone";
 import upload from "./utils/upload-imgs.js";
 //引入路由群組
 import admin2Router from "./routes/admin2.js";
+import member from "./routes/member.js";
 
 //引入資料庫
 import db from "./utils/connect-mysqls.js";
@@ -63,6 +64,8 @@ app.use((req, res, next) => {
   next();
 });
 
+
+app.use("/members", member);
 //*********************************路由 *********************************/
 // 路由定義, callback 為路由處理器
 // 路由的兩個條件: 1. HTTP method; 2. 路徑
@@ -142,7 +145,7 @@ app.use("/admins", admin2Router);
 
 
 //session 顯示頁面刷新次數
-app.get("/try-sess", (req, res) => {
+app.get("/mem-data", (req, res) => {
   req.session.my_num ||= 0;
   req.session.my_num++;
   res.json(req.session);
@@ -296,6 +299,8 @@ app.post("/login", upload.none(), async (req, res) => {
     birth: row.m_birth,
     gender: row.m_gender,
     location: row.m_location,
+    phone: row.m_phone,
+    icon: row.m_icon,
   };
   output.success = true;
   res.json(output);
